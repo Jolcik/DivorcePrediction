@@ -1,19 +1,7 @@
 from pprint import pprint
 import pandas as pd
-from src.id3 import build_tree
-
-
-def get_result_for_tree(tree, df):
-    att = list(tree.keys())[0]
-    df_att = df[att]
-
-    if df_att not in tree[att]:
-        return 0
-
-    if tree[att][df_att] is dict:
-        return get_result_for_tree(tree[att][df_att], df)
-
-    return tree[att][df_att]
+from src.id3 import build_tree, evaluate_row_tree
+from src import random_forest
 
 
 data = (pd.read_csv('data/divorce.csv', delimiter=';')
@@ -21,27 +9,44 @@ data = (pd.read_csv('data/divorce.csv', delimiter=';')
         .reset_index(drop=True)
         .copy())
 
-results = {}
-for fraction in [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
-    sum = 0
-    for i in range(50):
-        delimiter = int(len(data) * fraction)
-        training_data = data[:delimiter]
-        test_data = data[delimiter:]
 
-        tree = build_tree(training_data)
-        # pprint(tree)
+row_count = len(data)
+k = 5
+
+all_all_success = 0
+all_all_count = 0
+
+for j in range(10):
+    all_success = 0
+    all_count = 0
+
+    for i in range(k):
+        start = i * row_count // k
+        end = start + row_count // k
+
+        test_data = data[start:end].copy()
+        training_data = data[:start].append(data[end:]).copy()
+
+        forest = random_forest.build(training_data, build_tree, trees_number=150, attributes_number=5)
 
         success = 0
+        count = 0
         for _, row in test_data.iterrows():
-            real = row.iloc[-1]
-            forecasted = get_result_for_tree(tree, row)
+            result = random_forest.evaluate(row, forest, evaluate_row_tree)
+            expected = row.iloc[-1]
 
-            if real == forecasted:
-                success += 1
+            if result != -1:
+                count += 1
+                if result == expected:
+                    success += 1
 
-        sum += success / len(test_data)
+        all_success += success
+        all_count += count
 
-    results[fraction] = sum / 50
+        print(f'        {i+1}. SUCCESS RATE: {(success / count) * 100:.2f}%')
 
-print(results)
+    all_all_success += all_success
+    all_all_count += all_count
+    print(f'    {j+1}. CUMULATIVE SUCCESS RATE: {(all_success / all_count) * 100:.2f}%')
+
+print(f'WHOLE SUCCESS RATE: {(all_all_success / all_all_count) * 100:.2f}%')

@@ -1,4 +1,5 @@
 import numpy as np
+from random import randint
 
 
 CLASS = 'Class'
@@ -54,7 +55,27 @@ def build_tree(df, tree=None):
 
 		if len(counts) == 1:
 			tree[node][value] = class_value[0]
+		elif sub_table.drop(columns=[CLASS]).duplicated()[1:].all():
+			if np.min(counts) == np.max(counts):
+				tree[node][value] = randint(0, 1)
+			else:
+				tree[node][value] = class_value[np.argmax(counts)]
 		else:
-			tree[node][value] = build_tree(sub_table)
+			tree[node][value] = build_tree(sub_table.drop(columns=[node]))
 
 	return tree
+
+
+def evaluate_row_tree(tree, df):
+	att = list(tree.keys())[0]
+	df_att = df[att]
+
+	# if there was no such selection option in training set
+	# that's the issue of discrete trees when using numbers as attribute values
+	if df_att not in tree[att]:
+		return -1
+
+	if isinstance(tree[att][df_att], dict):
+		return evaluate_row_tree(tree[att][df_att], df)
+
+	return tree[att][df_att]
