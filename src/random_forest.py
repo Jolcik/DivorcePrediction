@@ -5,7 +5,7 @@ def evaluate(df, forest, evaluate_tree):
 	all_results = {}
 
 	for tree in forest:
-		result = evaluate_tree(tree, df)
+		result = evaluate_tree(df, tree)
 
 		if result not in all_results.keys():
 			all_results[result] = 1

@@ -66,7 +66,7 @@ def build_tree(df, tree=None):
 	return tree
 
 
-def evaluate_row_tree(tree, df):
+def evaluate_row(df, tree):
 	att = list(tree.keys())[0]
 	df_att = df[att]
 
@@ -76,6 +76,6 @@ def evaluate_row_tree(tree, df):
 		return -1
 
 	if isinstance(tree[att][df_att], dict):
-		return evaluate_row_tree(tree[att][df_att], df)
+		return evaluate_row(df, tree[att][df_att])
 
 	return tree[att][df_att]
