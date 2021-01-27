@@ -5,6 +5,9 @@ CLASS = 'Class'
 
 
 def evaluate_row(df, tree):
+	if isinstance(tree, np.int64):
+		return tree
+
 	atr_value = df[tree['attribute']]
 	tree_value = tree['left'] if atr_value <= tree['split'] else tree['right']
 

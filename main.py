@@ -1,52 +1,50 @@
-from pprint import pprint
 import pandas as pd
-from src.id3 import build_tree, evaluate_row_tree
-from src import random_forest
+from src import id3, cart
+from calculations import test_forest
 
 
-data = (pd.read_csv('data/divorce.csv', delimiter=';')
-        .sample(frac=1)
-        .reset_index(drop=True)
-        .copy())
+data = pd.read_csv('data/divorce.csv', delimiter=';')
 
 
-row_count = len(data)
-k = 5
+# these functions were created to provide a way to universally test CART tree building
+# with different max depth parameter value
+def cart_build_tree_3(df, depth=1):
+	return cart.build_tree(df, max_depth=3, depth=depth)
 
-all_all_success = 0
-all_all_count = 0
 
-for j in range(10):
-    all_success = 0
-    all_count = 0
+def cart_build_tree_5(df, depth=1):
+	return cart.build_tree(df, max_depth=5, depth=depth)
 
-    for i in range(k):
-        start = i * row_count // k
-        end = start + row_count // k
 
-        test_data = data[start:end].copy()
-        training_data = data[:start].append(data[end:]).copy()
+def cart_build_tree_8(df, depth=1):
+	return cart.build_tree(df, max_depth=8, depth=depth)
 
-        forest = random_forest.build(training_data, build_tree, trees_number=150, attributes_number=5)
 
-        success = 0
-        count = 0
-        for _, row in test_data.iterrows():
-            result = random_forest.evaluate(row, forest, evaluate_row_tree)
-            expected = row.iloc[-1]
+def cart_build_tree_10(df, depth=1):
+	return cart.build_tree(df, max_depth=10, depth=depth)
 
-            if result != -1:
-                count += 1
-                if result == expected:
-                    success += 1
 
-        all_success += success
-        all_count += count
+function_cases = [
+	(id3.build_tree, id3.evaluate_row, 'id3'),
+	(cart_build_tree_3, cart.evaluate_row, 'cart3'),
+	(cart_build_tree_5, cart.evaluate_row, 'cart5'),
+	(cart_build_tree_8, cart.evaluate_row, 'cart8'),
+	(cart_build_tree_10, cart.evaluate_row, 'cart10'),
+]
 
-        print(f'        {i+1}. SUCCESS RATE: {(success / count) * 100:.2f}%')
+cross_validation_factors = [2, 5, 10]
+tree_numbers = [2, 5, 10, 20, 30, 40, 50, 100]
+attribute_numbers = [2, 5, 10, 15, 20, 30, 40]
 
-    all_all_success += all_success
-    all_all_count += all_count
-    print(f'    {j+1}. CUMULATIVE SUCCESS RATE: {(all_success / all_count) * 100:.2f}%')
 
-print(f'WHOLE SUCCESS RATE: {(all_all_success / all_all_count) * 100:.2f}%')
+for build, evaluate, name in function_cases:
+	test_forest(
+		data=data,
+		cross_validation_factors=cross_validation_factors,
+		build_tree=build,
+		evaluate_row=evaluate,
+		tree_numbers=tree_numbers,
+		attribute_numbers=attribute_numbers,
+		repetitions=3,
+		name=name,
+	)
